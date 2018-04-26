@@ -174,35 +174,40 @@ void SST25VF::writeByte(uint32_t address, uint8_t data)
 
 void SST25VF::writeArray(uint32_t address,const uint8_t dataBuffer[],uint16_t dataLength)
 {
+  SPIDBG("writeArray");
   //get the sector block where we are writing
   uint16_t sectorBlock = floor(address/FLASH_SECTOR_BYTES);
   //and the adress
   uint32_t sectorAddress = FLASH_SECTOR_BYTES * sectorBlock;
 
   //read the sector data
-  uint8_t sectorData[FLASH_SECTOR_BYTES];
+  uint8_t sectorData[FLASH_SECTOR_BYTES] PROGMEM;
   readSector(address,sectorData);
 
-  // Serial.println("Sector Data");
-  //   for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
-  //     if (sectorData[i] != 0XFF){
-  //       Serial.println("data: " + String(sectorData[i]) + " at: " + String(i));
-  //     }
-  // }
+#ifdef SPI_DEBUG
+      SPIDBG("Sector Data");
+      for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
+        if (sectorData[i] != 0XFF){
+          SPIDBG("data: " + String(sectorData[i]) + " at: " + String(i));
+        }
+    }
+#endif
 
   //now replace the sectorData bytes with the data...
-  for(uint32_t i=0;i<dataLength;i++) {
-    sectorData[address+i] = dataBuffer[i];
+  memcpy(sectorData+address, dataBuffer, dataLength);
+
+#ifdef SPI_DEBUG
+    SPIDBG("Writing Data");
+    for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
+      if (sectorData[i] != 0XFF){
+        SPIDBG("data: " + String(sectorData[i]) + " at: " + String(i));
+      }
   }
+#endif
 
-  // Serial.println("Writing Data");
-  //   for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
-  //     if (sectorData[i] != 0XFF){
-  //       Serial.println("data: " + String(sectorData[i]) + " at: " + String(i));
-  //     }
-  // }
-
+  //erase sector
   sectorErase(sectorBlock);
+
   //write the bytes
   for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
       writeByte((uint32_t)sectorAddress+i,sectorData[i]);
@@ -216,6 +221,8 @@ void SST25VF::readArray(uint32_t address,uint8_t dataBuffer[],uint16_t dataLengt
     for (uint16_t i=0; i<dataLength; ++i)
     {
       uint8_t result = readNext();
+      SPIDBG("reading byte:");
+      SPIDBG(result);
       if (result == 0xFF) {
         break;
       }
@@ -247,7 +254,15 @@ void SST25VF::writeString(uint32_t addr, char* string) {
 
 void SST25VF::readString(uint32_t addr, char* string, int bufSize) {
   readArray(addr, (byte*)string, bufSize);
-  Serial.println(string);
+}
+
+void SST25VF::writeInt(uint32_t addr, int value) {
+  byte *ptr = (byte*)&value;
+  writeArray(addr, ptr, sizeof(value));
+}
+
+void SST25VF::readInt(uint32_t addr, int* value) {
+  readArray(addr, (byte*)value, sizeof(int));
 }
 
 // ======================================================================================= //

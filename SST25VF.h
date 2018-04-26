@@ -13,13 +13,13 @@
  * 
  ***********************************************************************************/
 
-
 //include guard
 #ifndef SST25VF_H
 #define SST25VF_H
 
 #include <SPI.h>
-if defined(ARDUINO)
+
+#if defined(ARDUINO)
   #if ARDUINO >= 100
     #include "Arduino.h"
   #else
@@ -76,6 +76,8 @@ public:
 	void writeArray(uint32_t address,const uint8_t dataBuffer[],uint16_t dataLength);
 	void writeString(uint32_t addr, char* string);
 	void readString(uint32_t addr, char* string, int bufSize);
+	void SST25VF::writeInt(uint32_t addr, int value);
+  	void SST25VF::readInt(uint32_t addr, int* value);
 
 private: 
 	
@@ -91,5 +93,5 @@ private:
 	inline void volatile nop(void) { asm __volatile__ ("nop"); }
 	SPISettings sstSPISettings;
 }; 
- 
+
 #endif
