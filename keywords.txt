@@ -1,0 +1,26 @@
+#######################################
+# Data types (KEYWORD1)
+#######################################
+SerialMon	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+begin	KEYWORD2
+setInterrupt	KEYWORD2
+update	KEYWORD2
+readID	KEYWORD2
+totalErase	KEYWORD2
+sectorErase	KEYWORD2
+readInit	KEYWORD2
+readNext	KEYWORD2
+readFinish	KEYWORD2
+readArray	KEYWORD2
+writeByte	KEYWORD2
+writeArray	KEYWORD2
+writeString	KEYWORD2
+readString	KEYWORD2
+
+#######################################
+# Literals (LITERAL1)
+#######################################

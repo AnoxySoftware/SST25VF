@@ -1,12 +1,12 @@
 /************************************************************************************
- * 	
- * 	Name    : SST25VF.cpp                        
- * 	Author  : Noah Shibley                         
- * 	Date    : Aug 17th, 2013                                   
- * 	Version : 0.1                                              
- * 	Notes   : Based on SST code from: www.Beat707.com design. (Rugged Circuits and Wusik)      
+ *  
+ *  Name    : SST25VF.cpp                        
+ *  Author  : Noah Shibley                         
+ *  Date    : Aug 17th, 2013                                   
+ *  Version : 0.1                                              
+ *  Notes   : Based on SST code from: www.Beat707.com design. (Rugged Circuits and Wusik)      
  * 
- * 	
+ *  
  * 
  ***********************************************************************************/
 
@@ -19,12 +19,12 @@ SST25VF::SST25VF(){
  
 
 void SST25VF::begin(int chipSelect,int writeProtect,int hold){
-	
-	//set pin #s
-	FLASH_SSn = chipSelect;
-	FLASH_Wp = writeProtect;
-	FLASH_Hold = hold; 
-	
+  
+  //set pin #s
+  FLASH_SSn = chipSelect;
+  FLASH_Wp = writeProtect;
+  FLASH_Hold = hold; 
+  
   pinMode(FLASH_Wp, OUTPUT); 
   digitalWrite(FLASH_Wp, HIGH); //write protect off
 
@@ -37,14 +37,16 @@ void SST25VF::begin(int chipSelect,int writeProtect,int hold){
   
   sstSPISettings = SPISettings(SST25VF_SPI_CLOCK, SST25VF_SPI_BIT_ORDER, SST25VF_SPI_MODE);
   SPI.begin();
-	SPI.usingInterrupt(255);
   init(); 
-	readID();
+  readID();
 }
  
+void SST25VF::setInterrupt(uint8_t pin) {
+   SPI.usingInterrupt(pin);
+}
 
 void SST25VF::update(){
-	
+  
 
 }
 
@@ -81,9 +83,7 @@ void SST25VF::init()
   SPI.transfer(0x00);//value to write to register - xx0000xx will remove all block protection
   digitalWrite(FLASH_SSn,HIGH);
   delay(50);
-  SPI.endTransaction();
-
-  
+  SPI.endTransaction();  
 }
 
 // ======================================================================================= //
@@ -102,7 +102,7 @@ void SST25VF::readID()
   Serial.print("SPI ID ");
   Serial.println(buf);
   digitalWrite(FLASH_SSn,HIGH);
-  SPI.endTransaction();;
+  SPI.endTransaction();
 }
 
 // ======================================================================================= //
@@ -118,7 +118,7 @@ void SST25VF::totalErase()
   (void) SPI.transfer(0x60); // Erase Chip //
   digitalWrite(FLASH_SSn, HIGH);
   waitUntilDone();
-  SPI.endTransaction();;
+  SPI.endTransaction();
 }
 
 // ======================================================================================= //
@@ -143,8 +143,7 @@ void SST25VF::readInit(uint32_t address)
 // ======================================================================================= //
 
 uint8_t SST25VF::readNext() { 
-	return SPI.transfer(0); 
-	
+  return SPI.transfer(0); 
 }
 
 // ======================================================================================= //
@@ -173,27 +172,82 @@ void SST25VF::writeByte(uint32_t address, uint8_t data)
   SPI.endTransaction();;
 }
 
-uint32_t SST25VF::writeArray(uint32_t address,const uint8_t dataBuffer[],uint16_t dataLength)
+void SST25VF::writeArray(uint32_t address,const uint8_t dataBuffer[],uint16_t dataLength)
 {
-	for(uint16_t i=0;i<dataLength;i++)
-  {
-    writeByte((uint32_t)address+i,dataBuffer[i]);
-	
+  //get the sector block where we are writing
+  uint16_t sectorBlock = floor(address/FLASH_SECTOR_BYTES);
+  //and the adress
+  uint32_t sectorAddress = FLASH_SECTOR_BYTES * sectorBlock;
+
+  //read the sector data
+  uint8_t sectorData[FLASH_SECTOR_BYTES];
+  readSector(address,sectorData);
+
+  // Serial.println("Sector Data");
+  //   for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
+  //     if (sectorData[i] != 0XFF){
+  //       Serial.println("data: " + String(sectorData[i]) + " at: " + String(i));
+  //     }
+  // }
+
+  //now replace the sectorData bytes with the data...
+  for(uint32_t i=0;i<dataLength;i++) {
+    sectorData[address+i] = dataBuffer[i];
   }
-	return address + dataLength;
+
+  // Serial.println("Writing Data");
+  //   for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
+  //     if (sectorData[i] != 0XFF){
+  //       Serial.println("data: " + String(sectorData[i]) + " at: " + String(i));
+  //     }
+  // }
+
+  sectorErase(sectorBlock);
+  //write the bytes
+  for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
+      writeByte((uint32_t)sectorAddress+i,sectorData[i]);
+  }
 }
 
 void SST25VF::readArray(uint32_t address,uint8_t dataBuffer[],uint16_t dataLength)
 {
-	readInit((address));
+  readInit((address));
 
     for (uint16_t i=0; i<dataLength; ++i)
     {
-      dataBuffer[i] = readNext();
+      uint8_t result = readNext();
+      if (result == 0xFF) {
+        break;
+      }
+      dataBuffer[i] = result;
     }
 
     readFinish();
+}
 
+void SST25VF::readSector(uint32_t address,uint8_t dataBuffer[])
+{
+  //get the sector 
+  uint16_t sectorAddress = floor(address/FLASH_SECTOR_BYTES);
+  readInit((sectorAddress));
+
+    for (uint16_t i=0; i<FLASH_SECTOR_BYTES; ++i)
+    {
+      uint8_t result = readNext();
+      dataBuffer[i] = result;
+    }
+
+    readFinish();
+}
+
+void SST25VF::writeString(uint32_t addr, char* string) {
+  int numBytes = strlen(string)+1;
+  writeArray(addr, (const byte*)string, numBytes);
+}
+
+void SST25VF::readString(uint32_t addr, char* string, int bufSize) {
+  readArray(addr, (byte*)string, bufSize);
+  Serial.println(string);
 }
 
 // ======================================================================================= //
