@@ -174,7 +174,6 @@ void SST25VF::writeByte(uint32_t address, uint8_t data)
 
 void SST25VF::writeArray(uint32_t address,const uint8_t dataBuffer[],uint16_t dataLength)
 {
-  SPIDBG("writeArray");
   //get the sector block where we are writing
   uint16_t sectorBlock = floor(address/FLASH_SECTOR_BYTES);
   //and the adress
@@ -184,26 +183,26 @@ void SST25VF::writeArray(uint32_t address,const uint8_t dataBuffer[],uint16_t da
   uint8_t sectorData[FLASH_SECTOR_BYTES] PROGMEM;
   readSector(address,sectorData);
 
-#ifdef SPI_DEBUG
-      SPIDBG("Sector Data");
-      for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
-        if (sectorData[i] != 0XFF){
-          SPIDBG("data: " + String(sectorData[i]) + " at: " + String(i));
-        }
-    }
-#endif
+// #ifdef SPI_DEBUG
+//       SPIDBG("Sector Data");
+//       for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
+//         if (sectorData[i] != 0XFF){
+//           SPIDBG("data: " + String(sectorData[i]) + " at: " + String(i));
+//         }
+//     }
+// #endif
 
   //now replace the sectorData bytes with the data...
   memcpy(sectorData+address, dataBuffer, dataLength);
 
-#ifdef SPI_DEBUG
-    SPIDBG("Writing Data");
-    for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
-      if (sectorData[i] != 0XFF){
-        SPIDBG("data: " + String(sectorData[i]) + " at: " + String(i));
-      }
-  }
-#endif
+// #ifdef SPI_DEBUG
+//     SPIDBG("Writing Data");
+//     for(uint16_t i=0;i<FLASH_SECTOR_BYTES;i++) {
+//       if (sectorData[i] != 0XFF){
+//         SPIDBG("data: " + String(sectorData[i]) + " at: " + String(i));
+//       }
+//   }
+// #endif
 
   //erase sector
   sectorErase(sectorBlock);
@@ -221,8 +220,6 @@ void SST25VF::readArray(uint32_t address,uint8_t dataBuffer[],uint16_t dataLengt
     for (uint16_t i=0; i<dataLength; ++i)
     {
       uint8_t result = readNext();
-      SPIDBG("reading byte:");
-      SPIDBG(result);
       if (result == 0xFF) {
         break;
       }
@@ -256,13 +253,38 @@ void SST25VF::readString(uint32_t addr, char* string, int bufSize) {
   readArray(addr, (byte*)string, bufSize);
 }
 
-void SST25VF::writeInt(uint32_t addr, int value) {
+void SST25VF::writeInt(uint32_t addr, uint16_t value) {
   byte *ptr = (byte*)&value;
-  writeArray(addr, ptr, sizeof(value));
+  writeArray(addr, ptr, sizeof(uint16_t));
 }
 
-void SST25VF::readInt(uint32_t addr, int* value) {
-  readArray(addr, (byte*)value, sizeof(int));
+uint16_t SST25VF::readInt(uint32_t addr) {
+  byte *ptr;
+  readArray(addr, (byte*)&ptr, sizeof(uint16_t));
+  return (uint16_t)ptr;
+}
+
+void SST25VF::writeLong(uint32_t addr, unsigned long value) {
+  byte *ptr = (byte*)&value;
+  writeArray(addr, ptr, sizeof(unsigned long));
+}
+
+unsigned long SST25VF::readLong(uint32_t addr) {
+  byte *ptr;
+  readArray(addr, (byte*)&ptr, sizeof(unsigned long));
+  return (unsigned long)ptr;
+}
+
+void SST25VF::writeFloat(uint32_t addr, float value) {
+  byte *ptr = (byte*)&value;
+  writeArray(addr, ptr, sizeof(unsigned long));
+}
+
+float SST25VF::readFloat(uint32_t addr) {
+  float value = 0;
+  byte* p = (byte*)(void*)&value;
+  readArray(addr, (byte*)p, sizeof(value));
+  return value;
 }
 
 // ======================================================================================= //

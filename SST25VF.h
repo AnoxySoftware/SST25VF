@@ -71,13 +71,17 @@ public:
 	uint8_t readNext();
 	void readFinish();
 	void readArray(uint32_t address,uint8_t dataBuffer[],uint16_t dataLength);
+	void readString(uint32_t addr, char* string, int bufSize);
+  	uint16_t readInt(uint32_t addr);
+  	unsigned long readLong(uint32_t addr);
+  	float readFloat(uint32_t addr);
 	
 	void writeByte(uint32_t address, uint8_t data);
 	void writeArray(uint32_t address,const uint8_t dataBuffer[],uint16_t dataLength);
 	void writeString(uint32_t addr, char* string);
-	void readString(uint32_t addr, char* string, int bufSize);
-	void SST25VF::writeInt(uint32_t addr, int value);
-  	void SST25VF::readInt(uint32_t addr, int* value);
+	void writeInt(uint32_t addr, uint16_t value);
+	void writeLong(uint32_t addr, unsigned long value);
+	void writeFloat(uint32_t addr, float value);
 
 private: 
 	
